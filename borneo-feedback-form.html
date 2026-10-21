@@ -94,8 +94,8 @@
 
   /* ===== 4. ADMIN PANEL (for trainer only) ===== */
   details.admin { margin-top: 28px; background: var(--surface); border: 2px solid var(--ochre); border-radius: 14px; padding: 4px 20px; }
-  details.admin summary { cursor: pointer; font-weight: 800; font-size: 1.15rem; padding: 14px 0; color: var(--forest); }
-  .jump { display: inline-block; margin-top: 14px; font-weight: 700; color: var(--forest); background: var(--surface); border: 2px solid var(--ochre); border-radius: 10px; padding: 8px 14px; text-decoration: none; }
+  details.admin summary { cursor: pointer; font-weight: 800; font-size: 1.15rem; padding: 14px 0; color: var(--brand); }
+  .jump { display: inline-block; margin-top: 14px; font-weight: 700; color: var(--brand); background: var(--surface); border: 2px solid var(--ochre); border-radius: 10px; padding: 8px 14px; text-decoration: none; }
   .admin h3 { font-size: 1rem; margin: 18px 0 8px; }
   .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; }
   .stat { background: var(--bg); border-radius: 10px; padding: 12px; }
@@ -112,10 +112,13 @@
   .who li:last-child { border-bottom: 0; }
   .who time { color: var(--muted); font-size: 0.82rem; white-space: nowrap; }
   .who .empty { color: var(--muted); }
+  .filter { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 6px 0 4px; }
+  .filter select { flex: 1 1 200px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .filter button { flex: 0 0 auto; padding: 12px 16px; }
   .confirm-box { border: 2px solid var(--error); border-radius: 12px; padding: 14px; margin: 4px 0 12px; }
   .confirm-box p { margin: 0 0 4px; }
   #adminMsg:empty { display: none; }
-  #adminMsg { font-weight: 700; color: var(--forest); }
+  #adminMsg { font-weight: 700; color: var(--brand); }
   @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 </style>
 </head>
@@ -173,10 +176,17 @@
         <input type="password" id="pinInput" inputmode="numeric" style="flex:1 1 140px;font:inherit;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--text)">
         <button class="btn-alt" id="pinBtn">Unlock</button>
       </div>
-      <p class="err" id="pinErr" style="display:none">Wrong PIN. Try again.</p>
+      <p class="err" id="pinErr" style="display:none"></p>
     </div>
 
     <div id="adminContent" style="display:none">
+
+    <p class="note" id="sheetStatus"></p>
+    <div class="filter">
+      <label for="courseFilter" class="sr" style="font-weight:600">Show / Papar:</label>
+      <select id="courseFilter"></select>
+      <button class="btn-alt" id="refreshBtn">🔄 Refresh</button>
+    </div>
 
     <h3>Responses collected</h3>
     <div class="stats" id="stats"></div>
@@ -186,23 +196,21 @@
       <button class="btn-main" id="csvBtn" style="margin:0">Download CSV</button>
     </div>
     <div class="row">
-      <button class="btn-alt" id="sampleBtn">Add 5 sample responses</button>
-      <button class="btn-danger" id="clearBtn">Delete all responses</button>
+      <button class="btn-danger" id="clearBtn">Delete responses</button>
     </div>
     <!-- In-page confirmation (browser pop-ups are blocked in some previews) -->
     <div id="confirmDelete" class="confirm-box" style="display:none" role="alertdialog" aria-labelledby="confirmText">
-      <p id="confirmText"><b>Delete all responses on this device?</b><br>Padam semua jawapan dalam peranti ini? Download the CSV first if you need it.</p>
+      <p id="confirmText"></p>
       <div class="row" style="margin-bottom:0">
-        <button class="btn-danger" id="confirmYes">Yes, delete all</button>
+        <button class="btn-danger" id="confirmYes">Yes, delete</button>
         <button class="btn-alt" id="confirmNo">Cancel</button>
       </div>
     </div>
     <p class="note" id="adminMsg" role="status" aria-live="polite"></p>
-    <p class="note" id="sheetStatus"></p>
     <div class="row" id="sheetRow" style="display:none">
       <a class="btn-link" id="sheetLink" target="_blank" rel="noopener">Open Google Sheet</a>
     </div>
-    <p class="note">"Who has answered" and the CSV show responses from this device. The Google Sheet shows responses from every device.</p>
+    <p class="note">All numbers, the list and the CSV come from the Google Sheet, so they include responses from every phone. / Semua data diambil dari Google Sheet (semua telefon).</p>
 
     <h3>Set up a new training</h3>
     <div class="setup">
@@ -1517,8 +1525,8 @@ const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwLgOpTMZS5mO
 const GOOGLE_SHEET_LINK = "";
 const PENDING_KEY = "borneo_feedback_pending"; // answers waiting to be sent (e.g. no internet)
 
-// Trainer PIN — change this before using the form (tukar PIN ini)
-const TRAINER_PIN = "202111";
+// The trainer PIN is NOT stored here (this page is public on GitHub).
+// It is checked by the Apps Script: change ADMIN_KEY in the Apps Script to change the PIN.
 
 /* =====================================================================
    B. READ COURSE DETAILS (URL first, then defaults)
@@ -1566,7 +1574,6 @@ function loadAll() {
 function saveAll(list) {
   memoryStore = list;
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); } catch (e) {}
-  updateStats();
 }
 
 /* =====================================================================
@@ -1601,7 +1608,7 @@ function handleSubmit() {
   };
   RATINGS.forEach(r => response[r.id] = Number(data.get(r.id)));
 
-  saveAll([...loadAll(), response]);  // always keep a copy on this device as backup
+  saveAll([...loadAll(), response]);  // keep a backup copy on this device (not shown in Trainer tools)
   sendOrQueue(response);              // and send to Google Sheets (if connected)
   form.reset();
   form.style.display = "none";
@@ -1636,22 +1643,84 @@ function toCSV(list) {
 }
 
 document.getElementById("csvBtn").addEventListener("click", () => {
-  const list = loadAll();
-  if (!list.length) { showAdminMsg("No responses yet. Submit the form or add sample responses first."); return; }
+  const list = filteredRows();
+  if (!list.length) { showAdminMsg("No responses to download yet. / Belum ada jawapan."); return; }
   const blob = new Blob([toCSV(list)], { type: "text/csv;charset=utf-8" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = course.course.replace(/[^a-z0-9]+/gi, "_") + "_feedback.csv";
+  const label = currentFilter() || "All_courses";
+  a.download = label.replace(/[^a-z0-9]+/gi, "_") + "_feedback.csv";
   document.body.appendChild(a);
   a.click();
   a.remove();
 });
 
 /* =====================================================================
-   G. TRAINER TOOLS: stats, sample data, clear, new-training link
+   G. TRAINER TOOLS — data comes from the Google Sheet (every phone)
    ===================================================================== */
+let adminKey = "";     // the PIN typed by the trainer (kept in memory only, never saved)
+let sheetRows = [];    // all responses read from the Sheet
+
+// Talk to the Apps Script (send PIN + action, get JSON back)
+async function callSheet(payload) {
+  const res = await fetch(GOOGLE_SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(Object.assign({ key: adminKey }, payload))
+  });
+  return res.json();
+}
+
+// Turn the Sheet's rows into objects like { course: "...", participant: "...", r_content: 5, ... }
+function rowsToObjects(headers, rows) {
+  const map = columns();                                  // [key, heading] pairs
+  return rows.map(row => {
+    const o = {};
+    map.forEach(([key, heading]) => {
+      const i = headers.indexOf(heading);
+      o[key] = i >= 0 ? row[i] : "";
+    });
+    RATINGS.forEach(r => o[r.id] = Number(o[r.id]) || 0);
+    return o;
+  });
+}
+
+async function loadFromSheet() {
+  setStatus("Loading from Google Sheet… / Memuatkan…");
+  try {
+    const res = await callSheet({ action: "list" });
+    if (!res.ok) { setStatus(res.error === "locked" ? "Too many wrong PINs. Try again in 10 minutes." : "Could not read the Sheet: " + res.error); return false; }
+    sheetRows = rowsToObjects(res.headers, res.rows);
+    fillCourseFilter();
+    updateStats();
+    updateSheetStatus();
+    return true;
+  } catch (e) {
+    setStatus("Could not reach Google Sheets. Check the internet and tap Refresh.");
+    return false;
+  }
+}
+
+// Course drop-down: "this course" first (from the link), then other courses, then "All courses"
+function fillCourseFilter() {
+  const sel = document.getElementById("courseFilter");
+  const previous = sel.value;
+  const names = [...new Set(sheetRows.map(r => r.course).filter(Boolean))].sort();
+  sel.innerHTML = "";
+  const add = (value, text) => { const o = document.createElement("option"); o.value = value; o.textContent = text; sel.appendChild(o); };
+  names.forEach(n => add(n, n + " (" + sheetRows.filter(r => r.course === n).length + ")"));
+  add("", "All courses / Semua kursus (" + sheetRows.length + ")");
+  if (previous !== undefined && [...sel.options].some(o => o.value === previous) && sel.dataset.ready) sel.value = previous;
+  else sel.value = names.includes(course.course) ? course.course : "";
+  sel.dataset.ready = "1";
+}
+function currentFilter() { return document.getElementById("courseFilter").value; }
+function filteredRows() { const f = currentFilter(); return f ? sheetRows.filter(r => r.course === f) : sheetRows; }
+document.getElementById("courseFilter").addEventListener("change", updateStats);
+document.getElementById("refreshBtn").addEventListener("click", loadFromSheet);
+
 function updateStats() {
-  const list = loadAll();
+  const list = filteredRows();
   const avg = id => list.length ? (list.reduce((s, r) => s + (r[id] || 0), 0) / list.length).toFixed(1) : "-";
   document.getElementById("stats").innerHTML =
     `<div class="stat"><b>${list.length}</b><span>Responses</span></div>` +
@@ -1683,42 +1752,45 @@ function updateStats() {
   }
 }
 
-document.getElementById("sampleBtn").addEventListener("click", () => {
-  const names = ["Sample A", "Sample B", "Anonymous", "Sample C", "Anonymous"];
-  const learned = ["How to handle complaints calmly", "Active listening steps", "Using the LEAP method", "Writing clearer emails", "Teamwork tips"];
-  const tips = ["More role-play time", "Shorter breaks", "Provide slides after class", "Bigger screen", "Great as it is"];
-  const samples = names.map((n, i) => {
-    const s = { timestamp: new Date().toLocaleString(), course: course.course, date: course.date, trainer: course.trainer,
-                participant: n, learned: learned[i], suggestions: tips[i] };
-    RATINGS.forEach(r => s[r.id] = 3 + Math.floor(Math.random() * 3)); // random 3–5
-    return s;
-  });
-  saveAll([...loadAll(), ...samples]);
-  samples.forEach(sendOrQueue);        // sample rows also test the Google Sheets connection
-});
-
 // Short message shown inside Trainer tools (instead of browser pop-ups)
 let msgTimer;
 function showAdminMsg(text) {
   const el = document.getElementById("adminMsg");
   el.textContent = text;
   clearTimeout(msgTimer);
-  msgTimer = setTimeout(() => el.textContent = "", 5000);
+  msgTimer = setTimeout(() => el.textContent = "", 6000);
 }
 
-// Delete: first tap shows a confirmation box, "Yes, delete all" actually deletes
+// Delete: first tap shows a confirmation box, "Yes, delete" deletes from the Google Sheet
 const confirmBox = document.getElementById("confirmDelete");
 document.getElementById("clearBtn").addEventListener("click", () => {
+  const f = currentFilter();
+  const n = filteredRows().length;
+  if (!n) { showAdminMsg("Nothing to delete. / Tiada jawapan untuk dipadam."); return; }
+  const what = f ? `the ${n} response(s) for "${f}"` : `ALL ${n} responses (every course)`;
+  const p = document.getElementById("confirmText");
+  p.innerHTML = "";
+  const b = document.createElement("b");
+  b.textContent = `Delete ${what} from the Google Sheet?`;
+  p.append(b, document.createElement("br"),
+    "Padam dari Google Sheet? Download the CSV first if you need it. (Google Sheets keeps a version history: File > Version history.)");
   confirmBox.style.display = "block";
   document.getElementById("confirmNo").focus();
 });
 document.getElementById("confirmNo").addEventListener("click", () => {
   confirmBox.style.display = "none";
 });
-document.getElementById("confirmYes").addEventListener("click", () => {
-  saveAll([]);
+document.getElementById("confirmYes").addEventListener("click", async () => {
   confirmBox.style.display = "none";
-  showAdminMsg("All responses deleted. / Semua jawapan telah dipadam.");
+  showAdminMsg("Deleting… / Memadam…");
+  try {
+    const res = await callSheet({ action: "delete", course: currentFilter() });
+    if (!res.ok) { showAdminMsg("Could not delete: " + res.error); return; }
+    showAdminMsg(`${res.deleted} response(s) deleted. / ${res.deleted} jawapan dipadam.`);
+    await loadFromSheet();
+  } catch (e) {
+    showAdminMsg("Could not reach Google Sheets. Nothing was deleted.");
+  }
 });
 
 document.getElementById("sCourse").value = course.course;
@@ -1832,13 +1904,41 @@ const brandEl = document.querySelector(".brand");
 brandEl.style.cursor = "pointer";
 brandEl.style.userSelect = "none";
 brandEl.addEventListener("click", showTrainerPanel);
-function unlock() {
-  if (document.getElementById("pinInput").value === TRAINER_PIN) {
-    document.getElementById("pinGate").style.display = "none";
-    document.getElementById("adminContent").style.display = "block";
-  } else {
-    document.getElementById("pinErr").style.display = "block";
+async function unlock() {
+  const err = document.getElementById("pinErr");
+  const btn = document.getElementById("pinBtn");
+  err.style.display = "none";
+  if (!GOOGLE_SCRIPT_URL) {
+    err.textContent = "Google Sheets is not connected yet (GOOGLE_SCRIPT_URL is empty).";
+    err.style.display = "block";
+    return;
   }
+  adminKey = document.getElementById("pinInput").value;
+  btn.disabled = true; btn.textContent = "Checking…";
+  try {
+    const res = await callSheet({ action: "list" });
+    if (res.ok) {
+      sheetRows = rowsToObjects(res.headers, res.rows);
+      document.getElementById("pinGate").style.display = "none";
+      document.getElementById("adminContent").style.display = "block";
+      fillCourseFilter();
+      updateStats();
+      updateSheetStatus();
+    } else {
+      adminKey = "";
+      err.textContent = res.error === "locked"
+        ? "Too many wrong PINs. Wait 10 minutes. / Terlalu banyak cubaan, tunggu 10 minit."
+        : res.error === "wrong"
+          ? "Wrong PIN. Try again. / PIN salah."
+          : "The Apps Script is still the old version. Deploy it again: Deploy > Manage deployments > pencil > New version. (" + res.error + ")";
+      err.style.display = "block";
+    }
+  } catch (e) {
+    adminKey = "";
+    err.textContent = "Could not reach Google Sheets. Check the internet. / Tiada sambungan internet.";
+    err.style.display = "block";
+  }
+  btn.disabled = false; btn.textContent = "Unlock";
 }
 document.getElementById("pinBtn").addEventListener("click", unlock);
 document.getElementById("pinInput").addEventListener("keydown", e => { if (e.key === "Enter") unlock(); });
@@ -1878,13 +1978,14 @@ async function sendPending() {
   updateSheetStatus();
 }
 
+function setStatus(text) { document.getElementById("sheetStatus").textContent = text; }
 function updateSheetStatus() {
   const el = document.getElementById("sheetStatus");
   if (!GOOGLE_SCRIPT_URL) {
     el.textContent = "Google Sheets: not connected yet. Responses are saved on this device only.";
   } else {
     const waiting = loadPending().length;
-    el.textContent = "Google Sheets: connected. New responses are sent to the Sheet." +
+    el.textContent = "Google Sheets: connected ✅ Showing responses from every phone." +
       (waiting ? ` ${waiting} waiting to send (no internet). They will be sent when the form is opened again.` : "");
   }
   if (GOOGLE_SHEET_LINK) {
@@ -1893,7 +1994,6 @@ function updateSheetStatus() {
   }
 }
 
-updateStats();
 updateSheetStatus();
 sendPending();
 window.addEventListener("online", sendPending); // retry as soon as internet comes back
