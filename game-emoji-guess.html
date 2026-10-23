@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Emoji Guess | Borneo Learning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+<style>
+  /* ===== COLOURS (tukar warna di sini) ===== */
+  :root {
+    --navy: #1B355A;  --ochre: #F2A93B;  --coral: #F26B5B;  --teal: #1FB5A6;  --violet: #8B6CF0;
+    --teamA: #1FB5A6; --teamB: #F26B5B;
+    --bg1: #EAF0FA; --bg2: #FFF4E3;
+    --stage: #FFFFFF; --tile: #F4F6FB;
+    --text: #172033; --muted: #5E6B80; --line: #DCE3EE;
+    --shadow: 0 18px 40px -18px rgba(27,53,90,.35);
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg1: #0D1A2E; --bg2: #1B2D4A;
+      --stage: #16263F; --tile: #1F3352;
+      --text: #EEF3FB; --muted: #A7B5CC; --line: #2C4366;
+      --shadow: 0 18px 40px -18px rgba(0,0,0,.7);
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body {
+    margin: 0; min-height: 100vh; color: var(--text);
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 10% -10%, var(--bg2), transparent 60%),
+                linear-gradient(160deg, var(--bg1), var(--bg2));
+    background-attachment: fixed;
+    padding: env(safe-area-inset-top, 0px) 0 env(safe-area-inset-bottom, 0px);
+  }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 14px 16px 24px; }
+  .emo { font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif; }
+
+  /* ---------- Header ---------- */
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: inline-flex; align-items: center; gap: 8px; background: var(--navy); color: #fff;
+           font-weight: 800; font-size: .85rem; padding: 7px 14px; border-radius: 99px; }
+  @media (prefers-color-scheme: dark) { .brand { background: #2B4F82; } }
+  .brand .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ochre); }
+  .head-right { display: flex; align-items: center; gap: 10px; }
+  .count { font-weight: 800; color: var(--muted); }
+  .icon-btn { width: 40px; height: 40px; padding: 0; border-radius: 50%; font-size: 1.1rem; display: grid; place-items: center; }
+
+  /* ---------- Start & results screens ---------- */
+  .hero { text-align: center; padding: 26px 18px 30px; background: var(--stage); border-radius: 28px;
+          box-shadow: var(--shadow); border: 1px solid var(--line); margin-top: 18px; position: relative; overflow: hidden; }
+  .hero .big { font-size: clamp(3.6rem, 16vw, 6rem); line-height: 1; animation: float 3s ease-in-out infinite; }
+  @keyframes float { 50% { transform: translateY(-8px) rotate(-4deg); } }
+  h1 { margin: 12px 0 6px; font-size: clamp(2.2rem, 8vw, 3.4rem); letter-spacing: -0.03em; line-height: 1.05; }
+  .grad { background: linear-gradient(90deg, var(--ochre), var(--coral) 55%, var(--violet));
+          -webkit-background-clip: text; background-clip: text; color: transparent; }
+  .lead { color: var(--muted); max-width: 560px; margin: 0 auto 18px; line-height: 1.55; }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px; text-align: left; margin: 0 0 20px; }
+  .rule { background: var(--tile); border-radius: 16px; padding: 12px 14px; font-size: .9rem; color: var(--muted); }
+  .rule b { display: block; color: var(--text); margin-bottom: 2px; }
+  .teams-setup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 520px; margin: 0 auto 20px; }
+  .teams-setup label { display: block; text-align: left; font-weight: 700; font-size: .85rem; margin-bottom: 4px; }
+  .teams-setup input { width: 100%; font: inherit; font-weight: 700; color: var(--text); background: var(--tile);
+                       border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; }
+  .teams-setup .a input { border-color: var(--teamA); } .teams-setup .b input { border-color: var(--teamB); }
+  .start { font-size: 1.2rem; padding: 18px 40px; }
+
+  /* ---------- Start screen (front page) ---------- */
+  .start-hero { padding: 34px 20px 34px;
+    background:
+      radial-gradient(ellipse 55% 65% at 0% 0%, color-mix(in srgb, var(--teal) 24%, transparent), transparent),
+      radial-gradient(ellipse 55% 65% at 100% 100%, color-mix(in srgb, var(--coral) 22%, transparent), transparent),
+      radial-gradient(ellipse 45% 55% at 100% 0%, color-mix(in srgb, var(--violet) 18%, transparent), transparent),
+      var(--stage); }
+  .hero-in { position: relative; z-index: 1; }
+  .floaters { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+  .floaters span { position: absolute; bottom: -60px; font-size: var(--size); opacity: .16;
+                   font-family: "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+                   animation: drift var(--dur) linear var(--delay) infinite; }
+  @keyframes drift { to { transform: translateY(calc(-1 * (100% + 900px))) rotate(var(--spin)); } }
+  .bounce span { display: inline-block; animation: hop 2.4s ease-in-out infinite; }
+  .bounce span:nth-child(2) { animation-delay: .2s; } .bounce span:nth-child(3) { animation-delay: .4s; }
+  @keyframes hop { 0%, 60%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-14px) rotate(-6deg); } }
+  .start-hero .big { animation: none; }
+  .title { font-size: clamp(2.8rem, 11vw, 4.6rem); margin: 10px 0 8px; }
+  .grad { animation: shine 6s linear infinite; background-size: 200% auto; }
+  @keyframes shine { to { background-position: 200% center; } }
+  .tagline { font-size: 1.15rem; font-weight: 700; margin: 0 0 16px; line-height: 1.45; }
+  .tagline span { font-size: .95rem; font-weight: 600; color: var(--muted); }
+  .pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-bottom: 22px; }
+  .pill { background: var(--tile); border: 1px solid var(--line); border-radius: 99px; padding: 8px 14px; font-weight: 700;
+          font-size: .92rem; color: var(--muted); }
+  .pill b { color: var(--text); }
+  .versus { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); align-items: center; gap: 12px;
+            max-width: 600px; margin: 0 auto 24px; }
+  .vs-card { border-radius: 18px; padding: 12px; text-align: left; background: var(--tile); border: 2px solid var(--line); }
+  .vs-card.a { border-color: var(--teamA); box-shadow: 0 10px 24px -14px var(--teamA); }
+  .vs-card.b { border-color: var(--teamB); box-shadow: 0 10px 24px -14px var(--teamB); }
+  .vs-card label { display: block; font-size: .78rem; font-weight: 800; letter-spacing: .03em; margin-bottom: 6px; }
+  .vs-card.a label { color: var(--teamA); } .vs-card.b label { color: var(--teamB); }
+  .vs-card input { width: 100%; font: inherit; font-weight: 800; font-size: 1.05rem; color: var(--text);
+                   background: transparent; border: 0; padding: 4px 2px; }
+  .vs { width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; color: #fff;
+        background: linear-gradient(135deg, var(--ochre), var(--coral)); box-shadow: 0 8px 20px -8px var(--coral);
+        animation: beat 1.6s ease-in-out infinite; }
+  .glow { font-size: 1.3rem; padding: 18px 48px; border: 0; color: #1A1406;
+          background: linear-gradient(135deg, #FFC35C, var(--ochre) 50%, #F28C3B);
+          box-shadow: 0 0 0 0 rgba(242,169,59,.6); animation: ping 2s ease-out infinite; }
+  @keyframes ping { 0% { box-shadow: 0 0 0 0 rgba(242,169,59,.55); } 70%, 100% { box-shadow: 0 0 0 18px rgba(242,169,59,0); } }
+
+  /* ---------- Scoreboard ---------- */
+  .scoreboard { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; margin: 10px 0 10px; }
+  .team { min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px;
+          border-radius: 16px; color: #fff; font-weight: 800; box-shadow: var(--shadow); }
+  .team.a { background: linear-gradient(135deg, var(--teamA), #148F84); }
+  .team.b { background: linear-gradient(135deg, var(--teamB), #D9493A); }
+  .team .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* +1 button inside each team bar */
+  .give { flex: none; padding: 6px 14px; border-radius: 99px; font-size: .95rem; font-weight: 800; color: #fff;
+          background: rgba(255,255,255,.18); border: 2px solid rgba(255,255,255,.75); }
+  .give:hover { background: rgba(255,255,255,.3); box-shadow: none; }
+  .give.ready { animation: nudge 1.2s ease-in-out 2; }
+  @keyframes nudge { 50% { transform: scale(1.12); } }
+  .team.a .give.on { background: #fff; color: #128176; border-color: #fff; }
+  .team.b .give.on { background: #fff; color: #C9402F; border-color: #fff; }
+  .final .give { display: none; }
+  .team .pts { font-size: 1.6rem; min-width: 1.5em; text-align: right; }
+  .team .pts.bump { animation: bump .5s ease; }
+  @keyframes bump { 40% { transform: scale(1.5); } }
+
+  .progress { height: 6px; background: var(--line); border-radius: 99px; overflow: hidden; margin-bottom: 14px; }
+  .progress div { height: 100%; width: 0; border-radius: 99px;
+                  background: linear-gradient(90deg, var(--teal), var(--ochre), var(--coral)); transition: width .4s ease; }
+
+  /* ---------- Question card ---------- */
+  .stage { position: relative; background: var(--stage); border-radius: 28px; box-shadow: var(--shadow);
+           padding: 14px 20px 18px; text-align: center; overflow: hidden; border: 1px solid var(--line); }
+  .stage-top { display: flex; justify-content: space-between; align-items: center; }
+  .qno { font-weight: 800; font-size: .85rem; color: var(--muted); letter-spacing: .06em; text-transform: uppercase; }
+  .ring { position: relative; width: 56px; height: 56px; flex: none; }
+  .ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring .track { stroke: var(--line); }
+  .ring .fill { stroke: var(--teal); stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke .3s; }
+  .ring .num { position: absolute; inset: 0; display: grid; place-items: center; font-weight: 800; font-size: 1.15rem; }
+  .ring.low .fill { stroke: var(--coral); }
+  .ring.low .num { color: var(--coral); animation: beat 1s ease-in-out infinite; }
+  .ring.done .num { font-size: .8rem; }
+  @keyframes beat { 50% { transform: scale(1.15); } }
+
+  .emojis { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: clamp(8px, 2.5vw, 18px);
+            margin: 2px 0 8px; min-height: clamp(90px, 17vh, 150px); }
+  .tile { font-size: clamp(2.4rem, min(11vw, 10vh), 5rem); line-height: 1; background: var(--tile); border-radius: 24px;
+          padding: clamp(12px, 2.6vw, 20px); border: 1px solid var(--line);
+          animation: rise .45s cubic-bezier(.2,.9,.3,1.3) both; }
+  .plus { display: grid; place-items: center; width: clamp(34px, 7vw, 48px); height: clamp(34px, 7vw, 48px);
+          border-radius: 50%; background: var(--ochre); color: #1A1406; font-weight: 800; font-size: clamp(1.2rem, 4vw, 1.6rem);
+          animation: rise .45s cubic-bezier(.2,.9,.3,1.3) both; }
+  @keyframes rise { from { transform: translateY(14px) scale(.85); opacity: 0; } }
+  .hint { color: var(--muted); font-weight: 600; margin: 2px 0 12px; font-size: 1.05rem; }
+  .hint b { color: var(--text); }
+  .hint .en { font-size: .92rem; font-style: italic; opacity: .85; margin-top: 2px; }
+  .hint .lang { display: inline-block; margin-top: 10px; font-size: .78rem; font-weight: 800; letter-spacing: .03em;
+                padding: 6px 12px; border-radius: 99px; color: #fff; }
+  .hint .bm-tag { background: var(--navy); }
+  .hint .en-tag { background: var(--violet); }
+
+  .answer { min-height: 92px; display: grid; place-items: center; border-radius: 20px; padding: 14px; border: 2px dashed var(--line); }
+  .answer .q { font-size: 2rem; font-weight: 800; letter-spacing: .3em; color: var(--line); }
+  .answer.show { border: 2px solid transparent;
+                 background: linear-gradient(var(--stage), var(--stage)) padding-box,
+                             linear-gradient(90deg, var(--ochre), var(--coral), var(--violet)) border-box; }
+  .answer .word { font-size: clamp(1.8rem, 7vw, 3rem); font-weight: 800; letter-spacing: -0.02em; line-height: 1.1;
+                  animation: pop .5s cubic-bezier(.2,.9,.3,1.4) both; }
+  .answer .why { margin-top: 6px; color: var(--muted); font-weight: 600; }
+  @keyframes pop { from { transform: scale(.6); opacity: 0; } }
+
+  /* Who got it right? */
+  .award { margin-top: 14px; }
+  .award p { margin: 0 0 8px; font-weight: 700; color: var(--muted); font-size: .9rem; }
+  .award .row { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+  .award button { padding: 12px; }
+  .award .a { border-color: var(--teamA); color: var(--teamA); }
+  .award .b { border-color: var(--teamB); color: var(--teamB); }
+  .award .a.on { background: var(--teamA); color: #fff; }
+  .award .b.on { background: var(--teamB); color: #fff; }
+
+  /* ---------- Buttons ---------- */
+  button { font: inherit; font-weight: 800; font-size: 1rem; border-radius: 16px; padding: 16px 12px; cursor: pointer;
+           border: 2px solid var(--navy); background: var(--stage); color: var(--navy); transition: transform .1s, box-shadow .2s; }
+  @media (prefers-color-scheme: dark) { button { border-color: #8DB8F0; color: #CFE0FA; } }
+  button:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
+  button:active { transform: translateY(1px); }
+  button.main { background: var(--ochre); border-color: var(--ochre); color: #1A1406; }
+  button:focus-visible, input:focus-visible { outline: 3px solid var(--violet); outline-offset: 3px; }
+  .controls { display: grid; grid-template-columns: 1fr 1.4fr 1fr; gap: 10px; margin-top: 12px; }
+  .keys { text-align: center; color: var(--muted); font-size: .8rem; margin-top: 12px; }
+  kbd { font: inherit; font-weight: 700; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 1px 6px; background: var(--stage); }
+
+  /* ---------- Results (winner screen) ---------- */
+  .end-hero { padding: 26px 20px 30px;
+    background:
+      radial-gradient(ellipse 60% 55% at 50% 0%, color-mix(in srgb, var(--ochre) 30%, transparent), transparent),
+      radial-gradient(ellipse 50% 60% at 0% 100%, color-mix(in srgb, var(--teal) 18%, transparent), transparent),
+      radial-gradient(ellipse 50% 60% at 100% 100%, color-mix(in srgb, var(--coral) 18%, transparent), transparent),
+      var(--stage); }
+  .ribbon { display: inline-block; font-weight: 800; letter-spacing: .12em; font-size: .85rem; color: #1A1406;
+            background: linear-gradient(90deg, #FFD36E, var(--ochre)); padding: 8px 18px; border-radius: 99px;
+            box-shadow: 0 8px 20px -10px var(--ochre); animation: drop .6s cubic-bezier(.2,.9,.3,1.4) both; }
+  .trophy-wrap { position: relative; width: 170px; height: 170px; margin: 6px auto 0; display: grid; place-items: center; }
+  .rays { position: absolute; inset: -30px; border-radius: 50%;
+          background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--ochre) 35%, transparent) 0deg 10deg, transparent 10deg 30deg);
+          -webkit-mask: radial-gradient(circle, #000 25%, transparent 70%); mask: radial-gradient(circle, #000 25%, transparent 70%);
+          animation: spin 14s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .trophy { position: relative; font-size: 6.5rem; line-height: 1; animation: trophyIn .9s cubic-bezier(.2,.9,.3,1.5) both, float 3s ease-in-out 1s infinite; }
+  @keyframes trophyIn { from { transform: scale(.2) rotate(-25deg); opacity: 0; } }
+  @keyframes drop { from { transform: translateY(-18px); opacity: 0; } }
+  .win-title { font-size: clamp(2rem, 8vw, 3.4rem); margin: 4px 0 6px; animation: drop .7s .2s both; }
+  .win-title .emo { font-size: .85em; }
+  .podium { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 16px; align-items: end;
+            max-width: 520px; margin: 18px auto 10px; }
+  .pod { display: flex; flex-direction: column; align-items: center; min-width: 0; }
+  .medal { font-size: 2.6rem; line-height: 1; margin-bottom: 4px; animation: drop .6s .5s both; }
+  .pname { font-weight: 800; margin-bottom: 8px; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .block { width: 100%; border-radius: 18px 18px 8px 8px; color: #fff; display: flex; flex-direction: column;
+           align-items: center; justify-content: center; height: var(--h, 120px); transform-origin: bottom;
+           animation: grow .8s .3s cubic-bezier(.2,.9,.3,1.2) both; box-shadow: var(--shadow); }
+  @keyframes grow { from { transform: scaleY(0); } }
+  .pod.a .block { background: linear-gradient(180deg, var(--teamA), #128176); }
+  .pod.b .block { background: linear-gradient(180deg, var(--teamB), #C9402F); }
+  .pod.win .block { outline: 4px solid #FFD36E; outline-offset: 3px; }
+  .block .pts { font-size: 3rem; font-weight: 800; line-height: 1; }
+  .block .lbl { font-size: .78rem; font-weight: 700; opacity: .9; margin-top: 4px; }
+  .summary { color: var(--muted); font-weight: 600; margin: 14px 0 18px; }
+  .end-btns { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+  .end-btns button { padding: 16px 26px; }
+  .rain { position: absolute; inset: 0; pointer-events: none; overflow: hidden; z-index: 0; }
+  .rain i { position: absolute; top: -20px; width: 9px; height: 14px; border-radius: 2px; opacity: .9;
+            animation: fall var(--dur) linear var(--delay) both; }
+  @keyframes fall { to { transform: translate(var(--sway), 720px) rotate(var(--rot)); opacity: .2; } }
+
+  /* (old results styles, no longer used) */
+  .final { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 12px; max-width: 520px; margin: 18px auto 22px; }
+  .final .team { flex-direction: column; justify-content: center; padding: 16px; }
+  .final .team .pts { font-size: 2.6rem; text-align: center; }
+  .final .team.win { outline: 4px solid var(--ochre); outline-offset: 3px; }
+
+  /* Confetti */
+  .spark { position: absolute; width: 10px; height: 10px; border-radius: 3px; pointer-events: none; animation: fly 1s ease-out forwards; }
+  @keyframes fly { to { transform: translate(var(--dx), var(--dy)) rotate(300deg); opacity: 0; } }
+
+  @media (max-width: 480px) {
+    .controls { grid-template-columns: 1fr 1fr; }
+    .controls .main { grid-column: 1 / -1; order: -1; }
+    .keys { display: none; }
+    .teams-setup { grid-template-columns: 1fr; }
+    .versus { grid-template-columns: 1fr; gap: 8px; }
+    .vs { margin: 0 auto; width: 44px; height: 44px; font-size: .9rem; }
+    .team { padding: 8px 12px; font-size: .85rem; }
+    .team .pts { font-size: 1.3rem; }
+    .give { padding: 4px 10px; font-size: .85rem; }
+    .scoreboard .team { flex-wrap: wrap; row-gap: 4px; }
+    .scoreboard .team .name { flex-basis: 100%; }
+    .scoreboard .team .give { margin-right: auto; }
+  }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span>Borneo Learning</div>
+    <div class="head-right">
+      <span class="count" id="count"></span>
+      <button class="icon-btn" id="soundBtn" aria-label="Sound on/off" title="Sound on/off">🔊</button>
+    </div>
+  </header>
+
+  <!-- ===== 1. START SCREEN ===== -->
+  <section class="hero start-hero" id="startScreen">
+    <div class="floaters" id="floaters" aria-hidden="true"></div>
+    <div class="hero-in">
+      <div class="big emo bounce"><span>🤔</span><span>💡</span><span>🎉</span></div>
+      <h1 class="title">Emoji <span class="grad">Guess!</span></h1>
+      <p class="tagline">Teka dari emoji, kumpul mata untuk pasukan anda!<br><span>Guess from the emojis, score points for your team!</span></p>
+      <div class="pills">
+        <span class="pill"><span class="emo">❓</span> <b id="pillQ">15</b> soalan</span>
+        <span class="pill"><span class="emo">👥</span> <b>2</b> pasukan</span>
+        <span class="pill"><span class="emo">⏱️</span> <b id="pillS">20</b> saat</span>
+      </div>
+      <div class="versus">
+        <div class="vs-card a">
+          <label for="nameA">Pasukan 1 / Team 1</label>
+          <input id="nameA" value="Team Rafflesia 🌺" maxlength="24">
+        </div>
+        <div class="vs">VS</div>
+        <div class="vs-card b">
+          <label for="nameB">Pasukan 2 / Team 2</label>
+          <input id="nameB" value="Team Kenyalang 🦜" maxlength="24">
+        </div>
+      </div>
+      <button class="main start glow" id="startBtn">▶ Mula / Start</button>
+    </div>
+  </section>
+
+  <!-- ===== 2. GAME SCREEN ===== -->
+  <section id="gameScreen" hidden>
+    <div class="scoreboard">
+      <div class="team a"><span class="name" id="tA"></span>
+        <button class="give" id="giveA" aria-label="+1 point">+1</button><span class="pts" id="sA">0</span></div>
+      <div class="team b"><span class="name" id="tB"></span>
+        <button class="give" id="giveB" aria-label="+1 point">+1</button><span class="pts" id="sB">0</span></div>
+    </div>
+    <div class="progress"><div id="progress"></div></div>
+
+    <div class="stage" id="stage" aria-live="polite">
+      <div class="stage-top">
+        <span class="qno" id="qno"></span>
+        <div class="ring" id="ring" aria-label="Time left">
+          <svg viewBox="0 0 64 64"><circle class="track" cx="32" cy="32" r="28" fill="none" stroke-width="6"/>
+            <circle class="fill" id="ringFill" cx="32" cy="32" r="28" fill="none" stroke-width="6"/></svg>
+          <div class="num" id="timer"></div>
+        </div>
+      </div>
+      <div class="emojis" id="emoji"></div>
+      <p class="hint" id="hint"></p>
+      <div class="answer" id="answer"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prevBtn">◀ Previous</button>
+      <button class="main" id="revealBtn">👀 Show answer</button>
+      <button id="nextBtn">Next ▶</button>
+    </div>
+    <p class="keys"><kbd>Space</kbd> show answer · <kbd>1</kbd> / <kbd>2</kbd> give point · <kbd>←</kbd> <kbd>→</kbd> previous / next</p>
+  </section>
+
+  <!-- ===== 3. RESULTS SCREEN ===== -->
+  <section class="hero end-hero" id="endScreen" hidden>
+    <div class="rain" id="rain" aria-hidden="true"></div>
+    <div class="hero-in">
+      <div class="ribbon" id="ribbon">🏆 PEMENANG · WINNER</div>
+      <div class="trophy-wrap"><div class="rays" aria-hidden="true"></div><div class="trophy emo" id="trophy">🏆</div></div>
+      <h1 class="title win-title" id="winner"></h1>
+      <p class="tagline" id="endText"></p>
+      <div class="podium">
+        <div class="pod a" id="podA">
+          <div class="medal emo" id="mA"></div>
+          <div class="pname" id="fAn"></div>
+          <div class="block"><span class="pts" id="fAs">0</span><span class="lbl">mata · points</span></div>
+        </div>
+        <div class="pod b" id="podB">
+          <div class="medal emo" id="mB"></div>
+          <div class="pname" id="fBn"></div>
+          <div class="block"><span class="pts" id="fBs">0</span><span class="lbl">mata · points</span></div>
+        </div>
+      </div>
+      <p class="summary" id="summary"></p>
+      <div class="end-btns">
+        <button class="main glow" id="againBtn">🔄 Main lagi / Play again</button>
+        <button id="homeBtn">🏠 Muka depan / Home</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ============================================================
+   15 PUZZLES — EDIT HERE (tukar teka-teki di sini)
+   type "combine": each emoji = ONE word, shown with "+"   (🚗 + 🔥 = Kereta Api)
+   type "picture": the emojis together show the thing        (🍚🥥 = Nasi Lemak)
+   Each hint is written in BM (bm) and English (en); "lang" says which language to answer in.
+   icon: 📦 thing · 📍 place · 🐾 animal · 🍽️ food · 💼 work · 🙋 person
+   The order is shuffled every new game.
+   ============================================================ */
+const PUZZLES = [
+  // lang: "BM" = jawab dalam Bahasa Melayu, "EN" = answer in English
+  // ----- Benda / Things -----
+  { type: "combine", parts: ["🚗", "🔥"], lang: "BM", icon: "📦", bm: "Pengangkutan atas landasan",      en: "Transport that runs on rails",      answer: "Kereta Api",      explain: "Kereta + Api" },
+  { type: "combine", parts: ["👁️", "📅"], lang: "BM", icon: "📦", bm: "Bersinar di langit setiap hari",  en: "Shines in the sky every day",       answer: "Matahari",        explain: "Mata + Hari" },
+  { type: "combine", parts: ["🦷", "🖌️"], lang: "EN", icon: "📦", bm: "Digunakan setiap pagi dan malam", en: "Used every morning and night",      answer: "Toothbrush",      explain: "Tooth + Brush" },
+  // ----- Tempat / Places -----
+  { type: "combine", parts: ["⛰️", "⭐"], lang: "BM", icon: "📍", bm: "Kawasan membeli-belah terkenal di Kuala Lumpur", en: "Famous shopping area in Kuala Lumpur", answer: "Bukit Bintang", explain: "Bukit + Bintang" },
+  { type: "picture", parts: ["🦁", "🏙️"], lang: "BM", icon: "📍", bm: "Negara jiran, 'Kota Singa'",      en: "Neighbouring country, the 'Lion City'", answer: "Singapura",   explain: "Singa + Kota" },
+  { type: "combine", parts: ["🟩", "🏝️"], lang: "EN", icon: "📍", bm: "Pulau terbesar di dunia",         en: "The largest island in the world",   answer: "Greenland",       explain: "Green + Land" },
+  { type: "combine", parts: ["🧊", "🏝️"], lang: "EN", icon: "📍", bm: "Sebuah negara",                   en: "A country",                         answer: "Iceland",         explain: "Ice + Land" },
+  // ----- Haiwan / Animals -----
+  { type: "combine", parts: ["🐴", "🌊"], lang: "BM", icon: "🐾", bm: "Haiwan kecil di laut",            en: "Small animal in the sea",           answer: "Kuda Laut",       explain: "Kuda + Laut" },
+  { type: "combine", parts: ["🧑", "🌳"], lang: "BM", icon: "🐾", bm: "Haiwan terkenal di Borneo",       en: "Famous animal of Borneo",           answer: "Orang Utan",      explain: "Orang + Hutan" },
+  { type: "combine", parts: ["🧈", "🪰"], lang: "EN", icon: "🐾", bm: "Serangga bersayap cantik",        en: "Insect with colourful wings",       answer: "Butterfly",       explain: "Butter + Fly" },
+  // ----- Makanan & minuman / Food & drinks -----
+  { type: "picture", parts: ["🍚", "🥥"], lang: "BM", icon: "🍽️", bm: "Sarapan kegemaran Malaysia",       en: "Malaysia's favourite breakfast",    answer: "Nasi Lemak",      explain: "Nasi dimasak dengan santan kelapa" },
+  { type: "combine", parts: ["🦶", "5️⃣"], lang: "BM", icon: "📍", bm: "Laluan pejalan kaki di depan kedai",  en: "Covered walkway in front of shops", answer: "Kaki Lima",       explain: "Kaki + Lima" },
+  { type: "combine", parts: ["💧", "🥥"], lang: "BM", icon: "🍽️", bm: "Minuman segar dari pokok di tepi pantai", en: "Fresh drink from a tree by the beach", answer: "Air Kelapa", explain: "Air + Kelapa" },
+  // ----- Kerja / Work -----
+  { type: "combine", parts: ["💀", "➖"], lang: "EN", icon: "💼", bm: "Setiap projek ada satu 😅",       en: "Every project has one 😅",          answer: "Deadline",        explain: "Dead + Line" },
+  { type: "combine", parts: ["🧠", "⛈️"], lang: "EN", icon: "💼", bm: "Berkongsi banyak idea dalam mesyuarat", en: "Sharing many ideas in a meeting", answer: "Brainstorm",   explain: "Brain + Storm" }
+];
+const SECONDS = 20;   // time per puzzle (masa setiap soalan)
+
+/* ============================================================
+   GAME LOGIC
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const RING = 2 * Math.PI * 28;
+$("ringFill").style.strokeDasharray = RING;
+
+let order = [], i = 0, timerId = null, revealed = false, soundOn = true;
+let score = { a: 0, b: 0 };
+let awarded = {};          // which team got which question: { questionIndex: "a" | "b" }
+
+function shuffle(list) {
+  const a = list.slice();
+  for (let k = a.length - 1; k > 0; k--) { const j = Math.floor(Math.random() * (k + 1)); [a[k], a[j]] = [a[j], a[k]]; }
+  return a;
+}
+function teamName(t) { return ($(t === "a" ? "nameA" : "nameB").value.trim() || (t === "a" ? "Team 1" : "Team 2")); }
+
+/* ----- Sound effects: HARP (made in the browser, no sound files needed) ----- */
+let audio = null;
+function audioCtx() {
+  if (!soundOn) return null;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    if (audio.state === "suspended") audio.resume();
+    return audio;
+  } catch (e) { return null; }
+}
+// Everything goes through a limiter, so loud chords never crackle
+function out(c) {
+  if (!c.__out) {
+    const comp = c.createDynamicsCompressor(), g = c.createGain();
+    comp.threshold.value = -12; comp.ratio.value = 12; g.gain.value = 0.7;
+    comp.connect(g).connect(c.destination); c.__out = comp;
+  }
+  return c.__out;
+}
+function tone(c, t0, { f = 440, dur = 0.3, type = "sine", vol = 0.2, attack = 0.003 }) {
+  const o = c.createOscillator(), g = c.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t0);
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(vol, t0 + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  o.connect(g).connect(out(c)); o.start(t0); o.stop(t0 + dur + 0.02);
+}
+// One harp string: a soft pluck that rings and fades
+function harp(c, t, f, d = 0.35, v = 0.2) {
+  tone(c, t, { f, dur: Math.max(d, 0.9), type: "triangle", vol: v * 0.9 });
+  tone(c, t, { f: f * 2, dur: 0.5, vol: v * 0.25 });
+}
+const C4 = 261.6, A4 = 440, C5 = 523.3, D5 = 587.3, E5 = 659.3, G5 = 784, A5 = 880, C6 = 1046.5, D6 = 1174.7, E6 = 1318.5;
+const TUNES = {
+  tick:   [[C6, 0, 0.15, 0.12]],                                                   // last 5 seconds
+  reveal: [C5, D5, E5, G5, A5, C6, D6, E6].map((f, n) => [f, n * 0.045, 0.9, 0.16]), // magic glide up
+  point:  [[G5, 0, 0.3], [C6, 0.12, 0.9], [E6, 0.24, 0.9, 0.12]],                  // +1 point
+  timeUp: [[E5, 0, 0.5], [C5, 0.22, 0.5], [A4, 0.44, 1.1]],                         // time is up
+  win:    [[C5, 0], [E5, 0.15], [G5, 0.3], [C6, 0.45, 0.4], [G5, 0.7, 0.3], [C6, 0.85, 1.6],
+           [E5, 0.85, 1.6, 0.12], [G5, 0.85, 1.6, 0.12], [C4, 0.85, 1.6, 0.14]]      // winner
+};
+function playTune(name) {
+  const c = audioCtx();
+  if (!c) return;
+  try { const t = c.currentTime + 0.02; TUNES[name].forEach(([f, o, d, v]) => harp(c, t + o, f, d, v)); } catch (e) {}
+}
+const sfx = {
+  tick:   () => playTune("tick"),
+  reveal: () => playTune("reveal"),
+  point:  () => playTune("point"),
+  timeUp: () => playTune("timeUp"),
+  win:    () => playTune("win")
+};
+$("soundBtn").onclick = () => { soundOn = !soundOn; $("soundBtn").textContent = soundOn ? "🔊" : "🔇"; };
+
+/* ----- Screens ----- */
+function startGame() {
+  order = shuffle(PUZZLES);
+  i = 0; score = { a: 0, b: 0 }; awarded = {};
+  $("tA").textContent = teamName("a");
+  $("tB").textContent = teamName("b");
+  $("sA").textContent = 0; $("sB").textContent = 0;
+  $("startScreen").hidden = true; $("endScreen").hidden = true; $("gameScreen").hidden = false;
+  show();
+}
+
+function show() {
+  const p = order[i];
+  revealed = false;
+  $("count").textContent = `${i + 1} / ${order.length}`;
+  $("qno").textContent = `Soalan ${i + 1}`;
+  $("progress").style.width = ((i + 1) / order.length * 100) + "%";
+  $("nextBtn").textContent = i === order.length - 1 ? "🏆 Results" : "Next ▶";
+
+  // Hint in both languages + which language to answer in
+  const h = $("hint");
+  h.innerHTML = "";
+  const l1 = document.createElement("div"); l1.className = "bm";
+  const b = document.createElement("b"); b.textContent = "Hint: ";
+  l1.append(b, p.icon + " " + p.bm);
+  const l2 = document.createElement("div"); l2.className = "en"; l2.textContent = p.en;
+  const tag = document.createElement("span");
+  tag.className = "lang " + (p.lang === "EN" ? "en-tag" : "bm-tag");
+  tag.textContent = p.lang === "EN" ? "Jawab dalam English · Answer in English" : "Jawab dalam BM · Answer in Malay";
+  h.append(l1, l2, tag);
+
+  const box = $("emoji");
+  box.innerHTML = "";
+  p.parts.forEach((e, n) => {
+    if (n > 0 && p.type === "combine") {
+      const plus = document.createElement("span");
+      plus.className = "plus"; plus.textContent = "+";
+      plus.style.animationDelay = (n * 0.12 - 0.06) + "s";
+      box.appendChild(plus);
+    }
+    const t = document.createElement("span");
+    t.className = "tile emo"; t.textContent = e;
+    t.style.animationDelay = (n * 0.12) + "s";
+    box.appendChild(t);
+  });
+
+  $("answer").className = "answer";
+  $("answer").innerHTML = '<span class="q">? ? ?</span>';
+  $("giveA").classList.remove("ready"); $("giveB").classList.remove("ready");
+  updateAwardButtons();
+  startTimer();
+}
+
+function setRing(left) {
+  $("ringFill").style.strokeDashoffset = RING * (1 - left / SECONDS);
+  $("ring").classList.toggle("low", left <= 5 && left > 0);
+}
+
+function startTimer() {
+  clearInterval(timerId);
+  let left = SECONDS;
+  const fill = $("ringFill");
+  fill.style.transition = "none"; setRing(left); void fill.offsetWidth; fill.style.transition = "";
+  $("ring").classList.remove("done");
+  $("timer").textContent = left;
+  timerId = setInterval(() => {
+    left--;
+    $("timer").textContent = left;
+    setRing(left);
+    if (left <= 5 && left > 0) sfx.tick();
+    if (left <= 0) reveal(true);
+  }, 1000);
+}
+
+// timeUp = true when the timer ran out, otherwise the trainer tapped "Show answer"
+function reveal(timeUp) {
+  if (revealed || $("gameScreen").hidden) return;
+  revealed = true;
+  clearInterval(timerId);
+  $("ring").classList.remove("low");
+  $("ring").classList.add("done");
+  $("timer").textContent = timeUp === true ? "Time!" : "✓";
+  timeUp === true ? sfx.timeUp() : sfx.reveal();
+  const p = order[i];
+  const a = $("answer");
+  a.className = "answer show";
+  a.innerHTML = "";
+  const w = document.createElement("div"); w.className = "word"; w.textContent = p.answer;
+  const why = document.createElement("div"); why.className = "why"; why.textContent = p.explain;
+  const inner = document.createElement("div"); inner.append(w, why);
+  a.appendChild(inner);
+  // gently "nudge" the +1 buttons so the trainer knows where to tap
+  if (!awarded[i]) ["giveA", "giveB"].forEach(id => { const b = $(id); b.classList.remove("ready"); void b.offsetWidth; b.classList.add("ready"); });
+  confetti($("stage"), a, 26);
+}
+
+/* ----- Points: one team per question; tap again to undo ----- */
+function give(t) {
+  if (!revealed) reveal(false);
+  const prev = awarded[i];
+  if (prev) score[prev]--;
+  if (prev === t) { delete awarded[i]; }
+  else { awarded[i] = t; score[t]++; sfx.point(); }
+  $("sA").textContent = score.a; $("sB").textContent = score.b;
+  if (awarded[i]) { const el = $(t === "a" ? "sA" : "sB"); el.classList.remove("bump"); void el.offsetWidth; el.classList.add("bump"); }
+  updateAwardButtons();
+}
+function updateAwardButtons() {
+  $("giveA").classList.toggle("on", awarded[i] === "a");
+  $("giveB").classList.toggle("on", awarded[i] === "b");
+  $("giveA").textContent = awarded[i] === "a" ? "✓ +1" : "+1";
+  $("giveB").textContent = awarded[i] === "b" ? "✓ +1" : "+1";
+}
+
+function next() {
+  if (i === order.length - 1) return finish();
+  i++; show();
+}
+function prev() { if (i > 0) { i--; show(); if (awarded[i]) reveal(false); } }
+
+function finish() {
+  clearInterval(timerId);
+  $("gameScreen").hidden = true; $("endScreen").hidden = false;
+  $("count").textContent = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  const A = teamName("a"), B = teamName("b");
+  const tie = score.a === score.b, aWins = score.a > score.b;
+  $("fAn").textContent = A; $("fBn").textContent = B;
+
+  // Podium: the winner stands taller, wears a crown and a gold medal
+  const hi = "170px", lo = "110px", mid = "140px";
+  $("podA").style.setProperty("--h", tie ? mid : aWins ? hi : lo);
+  $("podB").style.setProperty("--h", tie ? mid : aWins ? lo : hi);
+  $("podA").classList.toggle("win", !tie && aWins);
+  $("podB").classList.toggle("win", !tie && !aWins);
+  $("mA").textContent = tie ? "🤝" : aWins ? "👑🥇" : "🥈";
+  $("mB").textContent = tie ? "🤝" : aWins ? "🥈" : "👑🥇";
+
+  // Title: team name in colour, its emoji kept in full colour next to it
+  const h = $("winner");
+  h.innerHTML = "";
+  if (tie) {
+    $("ribbon").textContent = "🤝 SERI · IT'S A TIE";
+    h.append("Seri! ", Object.assign(document.createElement("span"), { className: "grad", textContent: "It's a tie!" }));
+    $("endText").textContent = "Kedua-dua pasukan hebat! Both teams did great! 👏";
+  } else {
+    const w = aWins ? A : B;
+    $("ribbon").textContent = "🏆 PEMENANG · WINNER";
+    const emojis = (w.match(/(\p{Extended_Pictographic}|\uFE0F|\u200D)+/gu) || []).join("");
+    const plain = w.replace(/(\p{Extended_Pictographic}|\uFE0F|\u200D)+/gu, "").trim();
+    h.append(Object.assign(document.createElement("span"), { className: "grad", textContent: plain }));
+    if (emojis) h.append(" ", Object.assign(document.createElement("span"), { className: "emo", textContent: emojis }));
+    h.append(document.createElement("br"), "menang! 🎉");
+    $("endText").textContent = `Tahniah! Congratulations, ${w}!`;
+  }
+
+  // Summary line
+  const answered = Object.keys(awarded).length;
+  $("summary").textContent = `✅ ${answered} / ${order.length} soalan dijawab betul · answered correctly`;
+
+  // Count the scores up from 0
+  countUp($("fAs"), score.a); countUp($("fBs"), score.b);
+  sfx.win();
+  confettiRain();
+}
+
+function countUp(el, target) {
+  el.textContent = 0;
+  if (!target) return;
+  let n = 0;
+  const step = Math.max(40, 900 / target);
+  setTimeout(function tick() { n++; el.textContent = n; if (n < target) setTimeout(tick, step); }, 450);
+}
+
+// Confetti falling from the top for a few seconds
+function confettiRain() {
+  const box = $("rain");
+  box.innerHTML = "";
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const colors = ["#F2A93B", "#F26B5B", "#1FB5A6", "#8B6CF0", "#FFD36E", "#3B82C4"];
+  for (let n = 0; n < 90; n++) {
+    const c = document.createElement("i");
+    c.style.left = Math.random() * 100 + "%";
+    c.style.background = colors[n % colors.length];
+    c.style.setProperty("--dur", (2.4 + Math.random() * 2.4) + "s");
+    c.style.setProperty("--delay", (Math.random() * 3) + "s");
+    c.style.setProperty("--sway", (Math.random() * 120 - 60) + "px");
+    c.style.setProperty("--rot", (Math.random() * 720 - 360) + "deg");
+    box.appendChild(c);
+  }
+}
+
+/* ----- Confetti burst ----- */
+function confetti(container, from, count) {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cr = container.getBoundingClientRect(), fr = from.getBoundingClientRect();
+  const cx = fr.left - cr.left + fr.width / 2, cy = fr.top - cr.top + fr.height / 2;
+  const colors = ["#F2A93B", "#F26B5B", "#1FB5A6", "#8B6CF0", "#1B355A"];
+  for (let n = 0; n < count; n++) {
+    const s = document.createElement("span");
+    s.className = "spark";
+    const ang = Math.random() * Math.PI * 2, dist = 80 + Math.random() * 150;
+    s.style.left = cx + "px"; s.style.top = cy + "px";
+    s.style.background = colors[n % colors.length];
+    s.style.setProperty("--dx", Math.cos(ang) * dist + "px");
+    s.style.setProperty("--dy", Math.sin(ang) * dist - 30 + "px");
+    container.appendChild(s);
+    setTimeout(() => s.remove(), 1050);
+  }
+}
+
+/* ----- Front page: numbers + floating emojis in the background ----- */
+$("pillQ").textContent = PUZZLES.length;
+$("pillS").textContent = SECONDS;
+(function makeFloaters() {
+  const pool = [...new Set(PUZZLES.flatMap(p => p.parts))];
+  const box = $("floaters");
+  for (let n = 0; n < 16; n++) {
+    const e = document.createElement("span");
+    e.textContent = pool[n % pool.length];
+    e.style.left = (n % 2 ? 82 + Math.random() * 13 : 1 + Math.random() * 13) + "%";
+    e.style.setProperty("--size", (1.6 + Math.random() * 1.8) + "rem");
+    e.style.setProperty("--dur", (14 + Math.random() * 12) + "s");
+    e.style.setProperty("--delay", (-Math.random() * 20) + "s");
+    e.style.setProperty("--spin", (Math.random() > .5 ? 1 : -1) * (20 + Math.random() * 40) + "deg");
+    box.appendChild(e);
+  }
+})();
+
+/* ----- Buttons & keyboard ----- */
+$("startBtn").onclick = startGame;
+$("againBtn").onclick = startGame;
+$("homeBtn").onclick = () => { $("endScreen").hidden = true; $("startScreen").hidden = false; $("rain").innerHTML = ""; };
+$("revealBtn").onclick = () => reveal(false);
+$("nextBtn").onclick = next;
+$("prevBtn").onclick = prev;
+$("giveA").onclick = () => give("a");
+$("giveB").onclick = () => give("b");
+
+document.addEventListener("keydown", e => {
+  if ($("gameScreen").hidden || e.target.tagName === "INPUT") return;
+  if (e.key === " ") { e.preventDefault(); reveal(false); }
+  if (e.key === "ArrowRight") next();
+  if (e.key === "ArrowLeft") prev();
+  if (e.key === "1") give("a");
+  if (e.key === "2") give("b");
+});
+</script>
+</body>
+</html>
